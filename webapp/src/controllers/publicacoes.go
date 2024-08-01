@@ -7,21 +7,18 @@ import (
 	"net/http"
 	"strconv"
 	"webapp/src/config"
-	"webapp/src/cookies"
 	"webapp/src/requisicoes"
 	"webapp/src/respostas"
 
 	"github.com/gorilla/mux"
 )
 
-func CriarUsuario(w http.ResponseWriter, r *http.Request) {
+func CriarPublicacao(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
-	usuario, erro := json.Marshal(map[string]string{
-		"nome":  r.FormValue("nome"),
-		"email": r.FormValue("email"),
-		"nick":  r.FormValue("nick"),
-		"senha": r.FormValue("senha"),
+	publicacao, erro := json.Marshal(map[string]string{
+		"titulo":   r.FormValue("titulo"),
+		"conteudo": r.FormValue("conteudo"),
 	})
 
 	if erro != nil {
@@ -29,8 +26,8 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/usuarios", config.APIURL)
-	response, erro := http.Post(url, "application/json", bytes.NewBuffer(usuario))
+	url := fmt.Sprintf("%s/publicacoes", config.APIURL)
+	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPost, url, bytes.NewBuffer(publicacao))
 	if erro != nil {
 		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
 		return
@@ -45,15 +42,15 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, response.StatusCode, nil)
 }
 
-func PararDeSeguirUsuario(w http.ResponseWriter, r *http.Request) {
+func CurtirPublicacao(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+	publicacaoID, erro := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
 	if erro != nil {
 		respostas.JSON(w, http.StatusBadRequest, respostas.ErroAPI{Erro: erro.Error()})
 		return
 	}
 
-	url := fmt.Sprintf("%s/usuarios/%d/parar-de-seguir", config.APIURL, usuarioID)
+	url := fmt.Sprintf("%s/publicacoes/%d/curtir", config.APIURL, publicacaoID)
 	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPost, url, nil)
 	if erro != nil {
 		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
@@ -69,15 +66,15 @@ func PararDeSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, response.StatusCode, nil)
 }
 
-func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
+func DescurtirPublicacao(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+	publicacaoID, erro := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
 	if erro != nil {
 		respostas.JSON(w, http.StatusBadRequest, respostas.ErroAPI{Erro: erro.Error()})
 		return
 	}
 
-	url := fmt.Sprintf("%s/usuarios/%d/seguir", config.APIURL, usuarioID)
+	url := fmt.Sprintf("%s/publicacoes/%d/descurtir", config.APIURL, publicacaoID)
 	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPost, url, nil)
 	if erro != nil {
 		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
@@ -93,24 +90,27 @@ func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, response.StatusCode, nil)
 }
 
-func EditarUsuario(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	usuario, erro := json.Marshal(map[string]string{
-		"nome":  r.FormValue("nome"),
-		"nick":  r.FormValue("nick"),
-		"email": r.FormValue("email"),
-	})
+func AtualizarPublicacao(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+	publicacaoID, erro := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
 	if erro != nil {
 		respostas.JSON(w, http.StatusBadRequest, respostas.ErroAPI{Erro: erro.Error()})
 		return
 	}
 
-	cookie, _ := cookies.Ler(r)
-	usuarioID, _ := strconv.ParseUint(cookie["id"], 10, 64)
+	r.ParseForm()
+	publicacao, erro := json.Marshal(map[string]string{
+		"titulo":   r.FormValue("titulo"),
+		"conteudo": r.FormValue("conteudo"),
+	})
 
-	url := fmt.Sprintf("%s/usuarios/%d", config.APIURL, usuarioID)
+	if erro != nil {
+		respostas.JSON(w, http.StatusBadRequest, respostas.ErroAPI{Erro: erro.Error()})
+		return
+	}
 
-	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPut, url, bytes.NewBuffer(usuario))
+	url := fmt.Sprintf("%s/publicacoes/%d", config.APIURL, publicacaoID)
+	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPut, url, bytes.NewBuffer(publicacao))
 	if erro != nil {
 		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
 		return
@@ -125,42 +125,15 @@ func EditarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, response.StatusCode, nil)
 }
 
-func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	senhas, erro := json.Marshal(map[string]string{
-		"atual": r.FormValue("atual"),
-		"nova":  r.FormValue("nova"),
-	})
+func DeletarPublicacao(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+	publicacaoID, erro := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
 	if erro != nil {
 		respostas.JSON(w, http.StatusBadRequest, respostas.ErroAPI{Erro: erro.Error()})
 		return
 	}
 
-	cookie, _ := cookies.Ler(r)
-	usuarioID, _ := strconv.ParseUint(cookie["id"], 10, 64)
-
-	url := fmt.Sprintf("%s/usuarios/%d/atualizar-senha", config.APIURL, usuarioID)
-	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodPost, url, bytes.NewBuffer(senhas))
-	if erro != nil {
-		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode >= 400 {
-		respostas.TratarStatusCodeDeErro(w, response)
-		return
-	}
-
-	respostas.JSON(w, response.StatusCode, nil)
-}
-
-func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
-	cookie, _ := cookies.Ler(r)
-	usuarioID, _ := strconv.ParseUint(cookie["id"], 10, 64)
-
-	url := fmt.Sprintf("%s/usuarios/%d", config.APIURL, usuarioID)
-
+	url := fmt.Sprintf("%s/publicacoes/%d", config.APIURL, publicacaoID)
 	response, erro := requisicoes.FazerRequisicaoComAutenticacao(r, http.MethodDelete, url, nil)
 	if erro != nil {
 		respostas.JSON(w, http.StatusInternalServerError, respostas.ErroAPI{Erro: erro.Error()})
