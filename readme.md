@@ -18,7 +18,7 @@
 ## ❓ HOW TO USE
 
 - Clone the project
-```$ git clone https://github.com/rayantx/devbook_api```
+```$ git clone https://github.com/rayantx/devbook-api.git```
  - Create and use a database with help of files ***api/sql/dados.sql & api/sql/sql.sql*** (in my case, i used MySQL in Docker)
  - Replacement with your infos in **.env** (api and webapp)
  - Open localhost
